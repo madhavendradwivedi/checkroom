@@ -4,6 +4,6 @@
   "description": "Backend for Checkroom AI detector and humanizer",
   "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   }
 }
