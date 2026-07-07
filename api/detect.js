@@ -43,19 +43,25 @@ SCORING RULE: Default to human unless you find 3+ strong AI markers. Presence of
 Respond with ONLY valid JSON: {"percentage": <0-100>, "verdict": "<short phrase>", "signals": ["observation 1", "observation 2", "observation 3"]}`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 700,
-        system: system,
-        messages: [{ role: 'user', content: text }],
-      }),
-    });
+ const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01'
+  },
+  body: JSON.stringify({
+    model: 'claude-3-5-sonnet-latest',
+    max_tokens: 700,
+    system: system,
+    messages: [
+      {
+        role: 'user',
+        content: text
+      }
+    ]
+  })
+});
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -73,7 +79,9 @@ Respond with ONLY valid JSON: {"percentage": <0-100>, "verdict": "<short phrase>
 
     res.status(200).json(parsed);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to process request' });
-  }
+  console.error(error);
+  return res.status(500).json({
+    error: error.message,
+    stack: error.stack
+  });
 }
