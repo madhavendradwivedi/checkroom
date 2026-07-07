@@ -36,18 +36,24 @@ Output ONLY the rewritten text. No headers, no markdown, no preamble.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: system,
-        messages: [{ role: 'user', content: text }],
-      }),
-    });
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'anthropic-version': '2023-06-01'
+  },
+  body: JSON.stringify({
+    model: 'claude-3-5-sonnet-latest',
+    max_tokens: 1000,
+    system: system,
+    messages: [
+      {
+        role: 'user',
+        content: text
+      }
+    ]
+  })
+});
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -62,7 +68,9 @@ Output ONLY the rewritten text. No headers, no markdown, no preamble.`;
 
     res.status(200).json({ text: resultText.trim() });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to process request' });
-  }
+  console.error(error);
+  return res.status(500).json({
+    error: error.message,
+    stack: error.stack
+  });
 }
