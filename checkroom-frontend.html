@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkroom — draft checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F5EFDD;
+    --paper-edge: #E4DAB8;
+    --rule: rgba(59,91,120,0.22);
+    --ink: #23262B;
+    --ink-soft: #55575c;
+    --red: #B23A2E;
+    --red-dark: #8C2C22;
+    --green: #3F7D5C;
+    --yellow: #F2B705;
+    --card-shadow: 0 1px 0 var(--paper-edge), 0 12px 30px -18px rgba(35,38,43,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: #EDE6D0;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(255,255,255,0.4), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(178,58,46,0.05), transparent 55%);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--yellow); color: var(--ink); }
+
+  .wrap{ max-width: 980px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header.top{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 8px; flex-wrap:wrap; gap:8px;}
+  .wordmark{
+    font-family:'Special Elite', monospace;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: 0.5px;
+    color: var(--ink);
+  }
+  .wordmark .dot{ color: var(--red); }
+  .ruler{
+    height: 3px;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 6px, transparent 6px 12px);
+    opacity: 0.55;
+    margin: 6px 0 28px;
+  }
+  .tagline{
+    font-family:'Source Serif 4', serif;
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    margin: 0 0 36px;
+    line-height:1.5;
+  }
+  .tagline em{ color: var(--red); font-style: normal; border-bottom: 2px solid var(--yellow); }
+
+  .card{
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    padding: 28px 28px 22px;
+    position: relative;
+    overflow: visible;
+  }
+  .card + .card{ margin-top: 28px; }
+
+  .label-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
+  .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display:flex; align-items:center; gap:8px;
+  }
+  .label::before{ content:''; width:8px; height:8px; border-radius:50%; background: var(--red); display:inline-block; }
+
+  textarea{
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    border: none;
+    outline: none;
+    background:
+      linear-gradient(var(--paper), var(--paper)) padding-box,
+      repeating-linear-gradient(var(--paper) 0 31px, var(--rule) 31px 32px);
+    background-color: var(--paper);
+    line-height: 32px;
+    padding: 4px 4px 4px 4px;
+    font-family: 'Source Serif 4', serif;
+    font-size: 17px;
+    color: var(--ink);
+  }
+  textarea::placeholder{ color: #9a967f; font-style: italic; }
+
+  .toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top: 14px; flex-wrap: wrap; gap: 14px;
+  }
+  .counts{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .btn-row{ display:flex; gap: 12px; flex-wrap: wrap; }
+
+  button{
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 999px;
+    padding: 12px 22px;
+    border: 2px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+  button:hover:not(:disabled){ transform: translateY(-1px); }
+  button:active:not(:disabled){ transform: translateY(0px); }
+  button:disabled{ opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary{ background: var(--red); border-color: var(--red); color: #fff; }
+  .btn-primary:hover:not(:disabled){ background: var(--red-dark); border-color: var(--red-dark); }
+
+  .btn-ghost:hover:not(:disabled){ background: var(--ink); color: var(--paper); }
+
+  .small-note{
+    font-family:'Inter',sans-serif;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+
+  /* results row */
+  .results-row{
+    display: grid;
+    grid-template-columns: 190px 1fr;
+    gap: 26px;
+    align-items: start;
+  }
+  @media (max-width: 640px){
+    .results-row{ grid-template-columns: 1fr; }
+  }
+
+  .stamp-wrap{ display:flex; justify-content:center; padding-top: 6px; }
+  .stamp{
+    width: 168px; height: 168px;
+    border-radius: 50%;
+    border: 5px solid var(--red);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color: var(--red);
+    font-family: 'Special Elite', monospace;
+    transform: rotate(-9deg) scale(0.6);
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(.2,1.4,.4,1), opacity 0.35s ease;
+    position: relative;
+    text-align:center;
+    background: radial-gradient(circle, rgba(178,58,46,0.04), transparent 70%);
+  }
+  .stamp.show{ opacity: 1; transform: rotate(-9deg) scale(1); }
+  .stamp.is-human{ color: var(--green); border-color: var(--green); background: radial-gradient(circle, rgba(63,125,92,0.05), transparent 70%); }
+  .stamp::after{
+    content:'';
+    position:absolute; inset: 10px;
+    border: 1px dashed currentColor;
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+  .stamp .pct{ font-size: 34px; line-height:1; }
+  .stamp .pct-label{ font-size: 10px; letter-spacing: 1px; margin-top: 6px; text-transform: uppercase; }
+
+  .signals{ display:flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+  .verdict-line{
+    font-family:'Source Serif 4', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .sticky{
+    background: #FCF6DE;
+    border: 1px solid #E3D9A8;
+    border-left: 4px solid var(--yellow);
+    padding: 10px 14px;
+    font-family:'Inter', sans-serif;
+    font-size: 13.5px;
+    color: var(--ink);
+    border-radius: 4px;
+    transform: rotate(var(--r, 0deg));
+    box-shadow: 2px 3px 8px -4px rgba(0,0,0,0.25);
+  }
+  .sticky:nth-child(odd){ --r: -0.6deg; }
+  .sticky:nth-child(even){ --r: 0.5deg; }
+
+  .humanized-output{
+    font-family: 'Source Serif 4', serif;
+    font-size: 16.5px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 4px 2px;
+  }
+
+  .empty-state{
+    font-family:'Inter', sans-serif;
+    color: var(--ink-soft);
+    font-size: 14px;
+    font-style: italic;
+    padding: 8px 2px 4px;
+  }
+
+  .loading-line{
+    display:flex; align-items:center; gap: 10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .spinner{
+    width: 14px; height:14px; border-radius:50%;
+    border: 2px solid var(--rule); border-top-color: var(--red);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .error-line{
+    font-family:'Inter', sans-serif;
+    font-size: 13.5px;
+    color: var(--red-dark);
+    background: #FBEAE7;
+    border: 1px solid #EFC3BC;
+    padding: 10px 14px;
+    border-radius: 6px;
+  }
+
+  footer{
+    margin-top: 40px;
+    font-family:'Inter', sans-serif;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    border-top: 1px dashed var(--rule);
+    padding-top: 18px;
+  }
+
+  .copy-btn{ font-size:12.5px; padding: 8px 16px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .stamp{ transition: none; }
+    .spinner{ animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="wordmark">Checkroom<span class="dot">.</span></div>
+  </header>
+  <div class="ruler"></div>
+  <p class="tagline">Paste a draft below. Checkroom marks it up like a paper being graded — a <em>percentage</em> for how AI-sounding it reads, plus notes on why. Then, if you want, it rewrites the draft in a more natural, first-draft-student voice.</p>
+
+  <!-- Draft input card -->
+  <div class="card">
+    <div class="label-row">
+      <div class="label">Your draft</div>
+    </div>
+    <textarea id="draftInput" placeholder="Paste or write your essay, paragraph, or answer here…"></textarea>
+    <div class="toolbar">
+      <div class="counts" id="counts">0 words · 0 characters</div>
+      <div class="btn-row">
+        <button class="btn-primary" id="checkBtn">Check my draft</button>
+        <button class="btn-ghost" id="humanizeBtn">Make it sound like me</button>
+      </div>
+    </div>
+    <div class="small-note">Works best under ~600 words per check. Longer drafts may get trimmed in the rewrite.</div>
+  </div>
+
+  <!-- Detection results card -->
+  <div class="card" id="resultsCard">
+    <div class="label-row"><div class="label">The verdict</div></div>
+    <div id="resultsBody">
+      <div class="empty-state">Paste something above and hit "Check my draft" to see the verdict.</div>
+    </div>
+  </div>
+
+  <!-- Humanize results card -->
+  <div class="card" id="humanizeCard">
+    <div class="label-row">
+      <div class="label">In your own words</div>
+      <button class="btn-ghost copy-btn" id="copyBtn" style="display:none;">Copy result</button>
+    </div>
+    <div id="humanizeBody">
+      <div class="empty-state">Click "Make it sound like me" to get a more natural rewrite of your draft.</div>
+    </div>
+  </div>
+
+  <footer>
+    No AI detector — including this one — is fully accurate. Treat the percentage and notes as a signal to think about, not a verdict on your work, and always follow your school's or workplace's policies on AI use.
+  </footer>
+</div>
+
+<script>
+const draftInput = document.getElementById('draftInput');
+const counts = document.getElementById('counts');
+const checkBtn = document.getElementById('checkBtn');
+const humanizeBtn = document.getElementById('humanizeBtn');
+const resultsBody = document.getElementById('resultsBody');
+const humanizeBody = document.getElementById('humanizeBody');
+const copyBtn = document.getElementById('copyBtn');
+
+// Update the API base URL - replace with your Vercel deployment URL
+const API_BASE = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000' 
+  : 'https://your-deployment.vercel.app';
+
+function updateCounts(){
+  const text = draftInput.value.trim();
+  const words = text.length ? text.split(/\s+/).length : 0;
+  counts.textContent = `${words} words · ${draftInput.value.length} characters`;
+}
+draftInput.addEventListener('input', updateCounts);
+updateCounts();
+
+function setLoading(container, message){
+  container.innerHTML = `<div class="loading-line"><div class="spinner"></div><span>${message}</span></div>`;
+}
+function setError(container, message){
+  container.innerHTML = `<div class="error-line">${message}</div>`;
+}
+
+// ---- Detection ----
+checkBtn.addEventListener('click', async () => {
+  const text = draftInput.value.trim();
+  if(!text){
+    setError(resultsBody, "Paste a draft above first — there's nothing to check yet.");
+    return;
+  }
+  checkBtn.disabled = true;
+  setLoading(resultsBody, "Reading through the draft…");
+
+  try{
+    const response = await fetch(`${API_BASE}/api/detect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if(!response.ok){
+      const err = await response.json();
+      throw new Error(err.error || 'Detection failed');
+    }
+
+    const parsed = await response.json();
+    renderResults(parsed);
+  } catch(err){
+    console.error(err);
+    setError(resultsBody, "Couldn't reach the checker — try again in a moment.");
+  } finally{
+    checkBtn.disabled = false;
+  }
+});
+
+function renderResults(parsed){
+  const pct = Math.max(0, Math.min(100, Math.round(parsed.percentage)));
+  const isHuman = pct < 50;
+  const signals = Array.isArray(parsed.signals) ? parsed.signals : [];
+
+  resultsBody.innerHTML = `
+    <div class="results-row">
+      <div class="stamp-wrap">
+        <div class="stamp ${isHuman ? 'is-human' : ''}" id="stampEl">
+          <div class="pct">${pct}%</div>
+          <div class="pct-label">AI-likely</div>
+        </div>
+      </div>
+      <div class="signals">
+        <div class="verdict-line">${escapeHtml(parsed.verdict || (isHuman ? 'Likely human-written' : 'Likely AI-written'))}</div>
+        ${signals.map(s => `<div class="sticky">${escapeHtml(s)}</div>`).join('')}
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(() => {
+    const stampEl = document.getElementById('stampEl');
+    if(stampEl){ stampEl.classList.add('show'); }
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---- Humanize ----
+humanizeBtn.addEventListener('click', async () => {
+  const text = draftInput.value.trim();
+  if(!text){
+    setError(humanizeBody, "Paste a draft above first — there's nothing to rewrite yet.");
+    return;
+  }
+  humanizeBtn.disabled = true;
+  copyBtn.style.display = 'none';
+  setLoading(humanizeBody, "Rewriting in a more natural voice…");
+
+  try{
+    const response = await fetch(`${API_BASE}/api/humanize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if(!response.ok){
+      const err = await response.json();
+      throw new Error(err.error || 'Humanization failed');
+    }
+
+    const data = await response.json();
+    humanizeBody.innerHTML = `<div class="humanized-output" id="humanizedText"></div>`;
+    document.getElementById('humanizedText').textContent = data.text;
+    copyBtn.style.display = 'inline-block';
+  } catch(err){
+    console.error(err);
+    setError(humanizeBody, "Couldn't reach the rewriter — try again in a moment.");
+  } finally{
+    humanizeBtn.disabled = false;
+  }
+});
+
+copyBtn.addEventListener('click', () => {
+  const el = document.getElementById('humanizedText');
+  if(!el) return;
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const original = copyBtn.textContent;
+    copyBtn.textContent = "Copied";
+    setTimeout(() => { copyBtn.textContent = original; }, 1400);
+  });
+});
+</script>
+</body>
+</html>

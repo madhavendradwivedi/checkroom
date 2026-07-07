@@ -1,0 +1,9 @@
+{
+  "name": "checkroom-backend",
+  "version": "1.0.0",
+  "description": "Backend for Checkroom AI detector and humanizer",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  }
+}
