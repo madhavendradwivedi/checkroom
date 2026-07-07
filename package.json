@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "Backend for Checkroom AI detector and humanizer",
   "private": true,
+  "type": "module",
   "engines": {
     "node": "24.x"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.57.0"
   }
 }
