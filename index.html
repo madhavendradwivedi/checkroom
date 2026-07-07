@@ -316,9 +316,7 @@ const humanizeBody = document.getElementById('humanizeBody');
 const copyBtn = document.getElementById('copyBtn');
 
 // Update the API base URL - replace with your Vercel deployment URL
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000' 
-  : 'https://your-deployment.vercel.app';
+const API_BASE = "";
 
 function updateCounts(){
   const text = draftInput.value.trim();
@@ -346,7 +344,7 @@ checkBtn.addEventListener('click', async () => {
   setLoading(resultsBody, "Reading through the draft…");
 
   try{
-    const response = await fetch(`${API_BASE}/api/detect`, {
+    const response = await fetch("/api/detect", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
@@ -410,7 +408,7 @@ humanizeBtn.addEventListener('click', async () => {
   setLoading(humanizeBody, "Rewriting in a more natural voice…");
 
   try{
-    const response = await fetch(`${API_BASE}/api/humanize`, {
+    const response = await fetch("/api/humanize", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
