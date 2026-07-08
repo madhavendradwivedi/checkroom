@@ -1,35 +1,57 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   const { text } = req.body;
 
-  if (!text) {
-    return res.status(400).json({ error: "No text provided" });
+  if (!text || text.trim() === "") {
+    return res.status(400).json({
+      error: "No text provided"
+    });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
 
-  try {
-    const prompt = `
-You evaluate whether student writing appears AI-written or human-written.
+  if (!apiKey) {
+    return res.status(500).json({
+      error: "GEMINI_API_KEY is missing"
+    });
+  }
 
-Respond ONLY in JSON:
+  const prompt = `
+You are an AI writing detector.
+
+Analyze the following student writing.
+
+Return ONLY valid JSON.
 
 {
-  "percentage": 0-100,
+  "percentage": number,
   "verdict": "Likely Human" or "Likely AI",
-  "signals": [
+  "signals":[
     "reason 1",
     "reason 2",
     "reason 3"
   ]
 }
 
+Rules:
+
+- Human writing usually contains contractions.
+- Human writing varies sentence length.
+- Human writing sounds personal.
+- AI writing sounds formal and perfect.
+- Give a realistic score.
+
 Text:
+
 ${text}
 `;
+
+  try {
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -52,20 +74,57 @@ ${text}
       }
     );
 
-    const data = await response.json();
+    const raw = await response.text();
 
-    const result =
-      data.candidates[0].content.parts[0].text
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+    console.log(raw);
 
-    res.status(200).json(JSON.parse(result));
+    const data = JSON.parse(raw);
+
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    if (!data.candidates) {
+      return res.status(500).json({
+        error: "Gemini returned no candidates",
+        data
+      });
+    }
+
+    let output =
+      data.candidates[0].content.parts[0].text;
+
+    output = output
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    let result;
+
+    try {
+      result = JSON.parse(output);
+    } catch {
+
+      result = {
+        percentage: 50,
+        verdict: "Unable to determine",
+        signals: [
+          output
+        ]
+      };
+
+    }
+
+    return res.status(200).json(result);
 
   } catch (err) {
+
     console.error(err);
-    res.status(500).json({
+
+    return res.status(500).json({
       error: err.message
     });
+
   }
+
 }

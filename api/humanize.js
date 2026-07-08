@@ -10,6 +10,7 @@ export default async function handler(req, res) {
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
+  console.log("API KEY:", apiKey ? "FOUND" : "NOT FOUND");
 
   if (!apiKey) {
     return res.status(500).json({ error: "API key not configured" });
@@ -72,9 +73,11 @@ ${text}
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("FULL ERROR:", err);
+
     res.status(500).json({
-      error: err.message
+      message: err.message,
+      stack: err.stack
     });
   }
 }
