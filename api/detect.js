@@ -79,9 +79,10 @@ Respond with ONLY valid JSON: {"percentage": <0-100>, "verdict": "<short phrase>
 
     res.status(200).json(parsed);
   } catch (error) {
-  console.error(error);
-  return res.status(500).json({
-    error: error.message,
-    stack: error.stack
-  });
-}
+    console.error(error);
+    return res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
+};

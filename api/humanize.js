@@ -68,9 +68,10 @@ Output ONLY the rewritten text. No headers, no markdown, no preamble.`;
 
     res.status(200).json({ text: resultText.trim() });
   } catch (error) {
-  console.error(error);
-  return res.status(500).json({
-    error: error.message,
-    stack: error.stack
-  });
+    console.error(error);
+    return res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
 }
